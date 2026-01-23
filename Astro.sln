@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Astro", "Astro\Astro.csproj", "{264063FE-3784-46EA-8A41-C3FA821317AD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Astro.Abstractions", "Astro.Abstractions\Astro.Abstractions.csproj", "{B09EC1ED-5731-4AA2-BA57-3C3C7BC565CD}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{264063FE-3784-46EA-8A41-C3FA821317AD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{264063FE-3784-46EA-8A41-C3FA821317AD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{264063FE-3784-46EA-8A41-C3FA821317AD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{264063FE-3784-46EA-8A41-C3FA821317AD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B09EC1ED-5731-4AA2-BA57-3C3C7BC565CD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B09EC1ED-5731-4AA2-BA57-3C3C7BC565CD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B09EC1ED-5731-4AA2-BA57-3C3C7BC565CD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B09EC1ED-5731-4AA2-BA57-3C3C7BC565CD}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
