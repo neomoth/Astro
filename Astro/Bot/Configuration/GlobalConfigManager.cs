@@ -12,8 +12,8 @@ public static class GlobalConfig
 
 public sealed class GlobalConfigManager
 {
-	private string? resourceDir;
-	private readonly string? configDir;
+	private readonly string resourceDir;
+	private readonly string configDir;
 
 	public ConfigOptionRegistry Registry { get; private set; }
 	private const string ConfigFileName = "config.json";
@@ -24,20 +24,18 @@ public sealed class GlobalConfigManager
 	public GlobalConfigManager()
 	{
 		var dir = new DirectoryInfo(AppContext.BaseDirectory);
-		while (dir is not null)
-		{
-			if (Directory.Exists(Path.Combine(dir.FullName, "Resources")))
-			{
-				resourceDir = Path.Combine(dir.FullName, "Resources");
-				configDir = Path.Combine(dir.FullName, "Resources", "Config");
-				break;
-			}
+		while (dir != null && !Directory.EnumerateFiles(dir.FullName, "*.sln").Any())
 			dir = dir.Parent;
-		}
+		if (dir == null)
+			throw new DirectoryNotFoundException("Could not find the solution (.sln) file in any parent directory.");
+
+		resourceDir = Path.Combine(dir.FullName, "Resources");
+		configDir = Path.Combine(resourceDir, "Config");
+
+		Directory.CreateDirectory(resourceDir);
+		Directory.CreateDirectory(configDir);
+
 		Registry = new ConfigOptionRegistry();
-		// TODO: autogenerate config files
-		if(dir is null)
-			throw new DirectoryNotFoundException("Could not find Resources directory. Ensure it exists at the project root.");
 	}
 	
 	public GlobalConfigManager LoadConfig()
