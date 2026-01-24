@@ -197,7 +197,7 @@ public class HelpCommand : Command
 		return builder.Build();
 	}
 
-	private Embed BuildCommandInfo(ICommand cmd, SocketInteraction context, string path)
+	private static Embed BuildCommandInfo(ICommand cmd, SocketInteraction context, string path)
 	{
 		var builder = new EmbedBuilder()
 			.WithTitle($"/{path}")

@@ -62,14 +62,16 @@ public sealed class ConfigCommand : Command
 	}
 }
 
+#region Command Groups
 [CommandGroup(typeof(ConfigCommand))]
 public sealed class ConfigGlobalSubCommandGroup : CommandGroup
 {
 	public override string Name => "global";
 	public override string Description => "Edit the global config";
 }
+#endregion
 
-
+#region Global Subcommands
 [SubCommand(typeof(ConfigGlobalSubCommandGroup))]
 public class ConfigGlobalReloadSubCommand : Command
 {
@@ -492,3 +494,4 @@ public sealed class ConfigGlobalListSubCommand : Command
 		}\n```");
 	}
 }
+#endregion
