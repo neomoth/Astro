@@ -6,17 +6,12 @@ using Discord.WebSocket;
 
 namespace Astro.Bot.Commands;
 
+[RootCommand]
 public sealed class ConfigCommand : Command
 {
 	public override string Name => "config";
 	public override string Description => "Bot config command subgroup";
-
-	public override List<ISubCommand> SubCommands =>
-	[
-		new ConfigGlobalSubCommandGroup()
-	];
-
-	public override Task ExecuteCommand(SocketSlashCommand command) => Task.CompletedTask;
+	protected override Task ExecuteCommand(SocketSlashCommand command, CommandArgs args) => Task.CompletedTask;
 
 	public static object? Parse(string input)
 	{
@@ -67,27 +62,20 @@ public sealed class ConfigCommand : Command
 	}
 }
 
-public sealed class ConfigGlobalSubCommandGroup : SubCommandGroup
+[CommandGroup(typeof(ConfigCommand))]
+public sealed class ConfigGlobalSubCommandGroup : CommandGroup
 {
 	public override string Name => "global";
 	public override string Description => "Edit the global config";
-
-	public override List<ISubCommand> SubCommands =>
-	[
-		new ConfigGlobalSetSubCommand(),
-		new ConfigGlobalAddSubCommand(),
-		new ConfigGlobalRemoveSubCommand(),
-		new ConfigGlobalResetSubCommand(),
-		new ConfigGlobalListSubCommand(),
-		new ConfigGlobalReloadSubCommand()
-	];
 }
 
-public class ConfigGlobalReloadSubCommand : SubCommand
+
+[SubCommand(typeof(ConfigGlobalSubCommandGroup))]
+public class ConfigGlobalReloadSubCommand : Command
 {
 	public override string Name => "reload";
 	public override string Description => "Reloads the config file, in case it was updated manually.";
-	public override async Task ExecuteCommand(SocketSlashCommand command)
+	protected override async Task ExecuteCommand(SocketSlashCommand command, CommandArgs args)
 	{
 		await command.DeferAsync(ephemeral: true);
 		AstroBot.Config.LoadConfig();
@@ -95,7 +83,8 @@ public class ConfigGlobalReloadSubCommand : SubCommand
 	}
 }
 
-public sealed class ConfigGlobalResetSubCommand : SubCommand
+[SubCommand(typeof(ConfigGlobalSubCommandGroup))]
+public sealed class ConfigGlobalResetSubCommand : Command
 {
 	public override string Name => "reset";
 	public override string Description => "Reset a configuration option to its default value";
@@ -109,7 +98,7 @@ public sealed class ConfigGlobalResetSubCommand : SubCommand
 			.WithRequired(true)
 	];
 
-	public override async Task ExecuteCommand(SocketSlashCommand command)
+	protected override async Task ExecuteCommand(SocketSlashCommand command, CommandArgs args)
 	{
 		string key = string.Empty;
 
@@ -154,7 +143,8 @@ public sealed class ConfigGlobalResetSubCommand : SubCommand
 	}
 }
 
-public sealed class ConfigGlobalSetSubCommand : SubCommand
+[SubCommand(typeof(ConfigGlobalSubCommandGroup))]
+public sealed class ConfigGlobalSetSubCommand : Command
 {
 	public override string Name => "set";
 	public override string Description => "Set a configuration option to a new value";
@@ -174,7 +164,7 @@ public sealed class ConfigGlobalSetSubCommand : SubCommand
 			.WithRequired(true)
 	];
 
-	public override async Task ExecuteCommand(SocketSlashCommand command)
+	protected override async Task ExecuteCommand(SocketSlashCommand command, CommandArgs args)
 	{
 		string key = string.Empty;
 		string rawValue = string.Empty;
@@ -238,7 +228,8 @@ public sealed class ConfigGlobalSetSubCommand : SubCommand
 	}
 }
 
-public sealed class ConfigGlobalAddSubCommand : SubCommand
+[SubCommand(typeof(ConfigGlobalSubCommandGroup))]
+public sealed class ConfigGlobalAddSubCommand : Command
 {
 	public override string Name => "add";
 	public override string Description => "Add a value to an array config option, optionally specify an index";
@@ -258,7 +249,7 @@ public sealed class ConfigGlobalAddSubCommand : SubCommand
 			.WithType(ApplicationCommandOptionType.Integer)
 	];
 
-	public override async Task ExecuteCommand(SocketSlashCommand command)
+	protected override async Task ExecuteCommand(SocketSlashCommand command, CommandArgs args)
 	{
 		string key = string.Empty;
 		string rawValue = string.Empty;
@@ -353,7 +344,8 @@ public sealed class ConfigGlobalAddSubCommand : SubCommand
 	}
 }
 
-public sealed class ConfigGlobalRemoveSubCommand : SubCommand
+[SubCommand(typeof(ConfigGlobalSubCommandGroup))]
+public sealed class ConfigGlobalRemoveSubCommand : Command
 {
     public override string Name => "remove";
     public override string Description => "Remove a value from an array config option";
@@ -372,7 +364,7 @@ public sealed class ConfigGlobalRemoveSubCommand : SubCommand
             .WithType(ApplicationCommandOptionType.Integer)
     ];
 
-    public override async Task ExecuteCommand(SocketSlashCommand command)
+    protected override async Task ExecuteCommand(SocketSlashCommand command, CommandArgs args)
     {
         string key = string.Empty;
         string? rawValue = null;
@@ -485,11 +477,12 @@ public sealed class ConfigGlobalRemoveSubCommand : SubCommand
     }
 }
 
-public sealed class ConfigGlobalListSubCommand : SubCommand
+[SubCommand(typeof(ConfigGlobalSubCommandGroup))]
+public sealed class ConfigGlobalListSubCommand : Command
 {
 	public override string Name => "list";
 	public override string Description => "Lists all of the global bot properties";
-	public override async Task ExecuteCommand(SocketSlashCommand command)
+	protected override async Task ExecuteCommand(SocketSlashCommand command, CommandArgs args)
 	{
 		await command.DeferAsync(ephemeral: true);
 		var bannedOptions = GlobalConfig.Get<string[]>("Bot.Config.ProhibitedOptions");

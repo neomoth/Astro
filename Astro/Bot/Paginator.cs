@@ -1,26 +1,29 @@
 using Discord;
 using Discord.WebSocket;
+using Serilog;
 
 namespace Astro.Bot;
 
-public class Paginator
+public sealed class Paginator
 {
 	private static readonly Dictionary<ulong, (IUserMessage, CancellationTokenSource)> Tokens = new();
 	private readonly Callback<Embed> embedCallback;
+	private readonly SocketInteraction originalInteraction;
 	private readonly int pageSize;
 	private readonly int totalEntries;
 	private int btnId;
 
-	public Paginator(Callback<Embed> embedCallback, IUserMessage message, int pageSize, int totalEntries)
+	public Paginator(Callback<Embed> embedCallback, IUserMessage message, int pageSize, int totalEntries, SocketInteraction originalInteraction)
 	{
 		this.embedCallback = embedCallback;
 		this.pageSize = pageSize;
 		this.totalEntries = totalEntries;
+		this.originalInteraction = originalInteraction;
 		if (totalEntries <= pageSize) return;
 		StartTimeout(message);
 	}
 	
-	public virtual async Task OnButtonExecuted(SocketMessageComponent component)
+	public async Task OnButtonExecuted(SocketMessageComponent component)
 	{
 		var parts = component.Data.CustomId.Split(':');
 		if (parts is not [_, _, "page", _]) return;
@@ -30,19 +33,22 @@ public class Paginator
 		if (component.Message.InteractionMetadata.UserId != component.User.Id) return;
 		await component.UpdateAsync(msg =>
 		{
-			msg.Embed = embedCallback.Invoke(page, component);
+			msg.Embed = embedCallback.Invoke(page, component, originalInteraction);
 			msg.Components = BuildComponents(page, id);
 		});
 		StartTimeout(component.Message);
 		await Task.CompletedTask;
 	}
 
-	public virtual MessageComponent? BuildComponents(int page, ulong id, bool timedOut = false)
+	public MessageComponent? BuildComponents(int page, ulong id, bool timedOut = false)
 	{
-		int start = page * pageSize;
-		var atEnd = start >= totalEntries-1 || timedOut;
-		var atStart = start == 0 || timedOut;
-		if (totalEntries <= pageSize) return null;
+		if (totalEntries <= pageSize)
+			return null;
+
+		var lastPage = (int)Math.Ceiling(totalEntries / (double)pageSize) - 1;
+
+		var atStart = page <= 0 || timedOut;
+		var atEnd = page >= lastPage || timedOut;
 		return new ComponentBuilder()
 			.WithButton(customId: $"{id}:{btnId++}:page:0", emote: new Emoji("\u23ea"), disabled: atStart)
 			.WithButton(customId: $"{id}:{btnId++}:page:{page-1}", emote: new Emoji("\u2b05"), disabled: atStart)

@@ -4,6 +4,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Astro", "Astro\Astro.csproj
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Astro.Abstractions", "Astro.Abstractions\Astro.Abstractions.csproj", "{B09EC1ED-5731-4AA2-BA57-3C3C7BC565CD}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Astro.Generators", "Astro.Generators\Astro.Generators.csproj", "{2F5636CC-0E30-49D1-BD02-227FCB8AB412}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +20,9 @@ Global
 		{B09EC1ED-5731-4AA2-BA57-3C3C7BC565CD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B09EC1ED-5731-4AA2-BA57-3C3C7BC565CD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B09EC1ED-5731-4AA2-BA57-3C3C7BC565CD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2F5636CC-0E30-49D1-BD02-227FCB8AB412}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2F5636CC-0E30-49D1-BD02-227FCB8AB412}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2F5636CC-0E30-49D1-BD02-227FCB8AB412}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2F5636CC-0E30-49D1-BD02-227FCB8AB412}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

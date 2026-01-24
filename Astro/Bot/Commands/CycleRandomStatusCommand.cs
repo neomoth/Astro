@@ -1,7 +1,9 @@
+using Astro.Abstractions;
 using Discord.WebSocket;
 
 namespace Astro.Bot.Commands;
 
+[RootCommand]
 public class CycleRandomStatusCommand : Command
 {
 	public override string Name => "cyclerandomstatus";
@@ -9,7 +11,7 @@ public class CycleRandomStatusCommand : Command
 	public override bool RequiresWhitelist => true;
 	public override bool HideIfCantExecute => true;
 
-	public override async Task ExecuteCommand(SocketSlashCommand command)
+	protected override async Task ExecuteCommand(SocketSlashCommand command, CommandArgs args)
 	{
 		await command.DeferAsync(ephemeral: true);
 		await RandomStatus.CycleStatus();

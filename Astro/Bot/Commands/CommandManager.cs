@@ -11,129 +11,191 @@ namespace Astro.Bot.Commands;
 
 public static class CommandManager
 {
-	private static readonly Dictionary<Type, ICommand> _commands = [];
-	public static IReadOnlyCollection<ICommand> Commands => _commands.Values;
+	private static readonly Dictionary<Type, ICommand> CommandDict = [];
+	private static readonly List<ICommand> RootCommandsList = [];
+	public static IReadOnlyCollection<ICommand> Commands => CommandDict.Values;
+	public static IReadOnlyCollection<ICommand> RootCommands => RootCommandsList;
+	public static SocketSlashCommand? CurrentContext { get; private set; }
 
 	static CommandManager()
 	{
 		HotReloadHandler.CommandHotReload += async (_, ev) =>
 		{
 			if (ev is not CommandHotReloadEventArgs args) return;
-			Log.Information(
-				$"Commands hot reloaded. Updated commands: {string.Join(',', args.LoadedTypes?.Select(t => t.Name).ToArray() ?? Array.Empty<string>())}");
+			Log.Information("Commands hot reloaded. Updated commands: {commands}",
+				string.Join(',', args.LoadedTypes?.Select(t => t.Name).ToArray() ?? Array.Empty<string>()));
 			await InitSlashCommands();
 		};
 	}
 	
 	public static void Load()
 	{
-		Log.Verbose("Loading commands...");
+		CommandDict.Clear();
+		RootCommandsList.Clear();
 
-		foreach (var type in Assembly.GetExecutingAssembly().GetTypes())
+		var allTypes = Assembly.GetExecutingAssembly().GetTypes()
+			.Where(t =>
+				typeof(ICommand).IsAssignableFrom(t) &&
+				t.IsClass &&
+				t is { IsAbstract: false, ContainsGenericParameters: false });
+
+		var allCommands = new List<ICommand>();
+
+		foreach (var type in allTypes)
 		{
-			if (!typeof(ICommand).IsAssignableFrom(type)) continue;
-			if (typeof(ISubCommand).IsAssignableFrom(type)) continue;
-			if (!type.IsClass || type.IsAbstract) continue;
-			if (type.ContainsGenericParameters) continue;
+			var isRoot = type.IsDefined(typeof(RootCommandAttribute));
+			var isGroup = type.IsDefined(typeof(CommandGroupAttribute));
+			var isSub = type.IsDefined(typeof(SubCommandAttribute));
+
+			if (!isRoot && !isGroup && !isSub) continue;
+
 			var instance = (ICommand)Activator.CreateInstance(type)!;
-			Log.Information("Registered command {TypeName}", type.Name);
-			_commands[type] = instance;
+			CommandDict[type] = instance;
+			allCommands.Add(instance);
 		}
-		
-		Log.Information("Loaded {Count} commands.", _commands.Count);
+
+		BuildTree(allCommands);
+
+		Log.Verbose("Loaded {count} commands.", RootCommands.Count);
+	}
+
+	private static void BuildTree(List<ICommand> all)
+	{
+		foreach (var cmd in all)
+		{
+			var type = cmd.GetType();
+
+			if (type.IsDefined(typeof(RootCommandAttribute)))
+			{
+				RootCommandsList.Add(cmd);
+				continue;
+			}
+
+			if (type.GetCustomAttribute<CommandGroupAttribute>() is { } group)
+			{
+				Attach(cmd, group.Parent);
+				continue;
+			}
+
+			if (type.GetCustomAttribute<SubCommandAttribute>() is { } sub)
+			{
+				Attach(cmd, sub.Parent);
+				continue;
+			}
+
+			Log.Warning("Command {cmd} has no valid attribute and will not be attached.", type.Name);
+		}
+	}
+
+	private static void Attach(ICommand child, Type type)
+	{
+		if (!CommandDict.TryGetValue(type, out var cmd))
+			throw new InvalidOperationException(
+				$"{child.GetType().Name} attempted to attach to invalid parent {type.Name}");
+		cmd.SubCommands.Add(child);
 	}
 
 	public static async Task InitSlashCommands()
 	{
-		var slashCommands = new List<ApplicationCommandProperties>();
-		foreach (var cmd in _commands.Values)
+		try
 		{
-			var builder = new SlashCommandBuilder().WithName(cmd.Name)
-				.WithDescription(cmd.Description)
-				.WithNsfw(cmd.IsNsfw)
-				.AddOptions(cmd.Options.ToArray());
-			foreach (var sub in cmd.SubCommands)
-			{
-				builder.AddOption(sub.Build());
-			}
-			slashCommands.Add(builder.Build());
+			await AstroBot.Client.BulkOverwriteGlobalApplicationCommandsAsync(RootCommands
+				.Select(root => BuildSlash(root).Build()).Cast<ApplicationCommandProperties>().ToArray());
+			Log.Verbose("Slash commands registered.");
 		}
-		if (slashCommands.Count != 0)
+		catch (HttpException e)
 		{
-			try
-			{
-				await AstroBot.Client.BulkOverwriteGlobalApplicationCommandsAsync(slashCommands.ToArray());
-				Log.Information("Bulk created slash commands!");
-			}
-			catch (HttpException e)
-			{
-				var json = JsonConvert.SerializeObject(e.Errors, Formatting.Indented);
-				Log.Error("Error while creating slash commands: {error}", json);
-			}
+			Log.Error("Got error while attempting to bulk register slash commands.\n{err}",
+				JsonConvert.SerializeObject(e.Message, Formatting.Indented));
 		}
 	}
-	
+
+	private static SlashCommandBuilder BuildSlash(ICommand root)
+	{
+		var builder = new SlashCommandBuilder()
+			.WithName(root.Name)
+			.WithDescription(root.Description)
+			.WithNsfw(root.IsNsfw)
+			.AddOptions(root.Options.ToArray());
+
+		foreach (var sub in root.SubCommands)
+			builder.AddOption(BuildOption(sub));
+
+		return builder;
+	}
+
+	private static SlashCommandOptionBuilder BuildOption(ICommand cmd)
+	{
+		var type = cmd.SubCommands.Count > 0
+			? ApplicationCommandOptionType.SubCommandGroup
+			: ApplicationCommandOptionType.SubCommand;
+
+		var builder = new SlashCommandOptionBuilder()
+			.WithName(cmd.Name)
+			.WithDescription(cmd.Description)
+			.WithType(type);
+
+		if (type is ApplicationCommandOptionType.SubCommand)
+			builder.AddOptions(cmd.Options.ToArray());
+
+		foreach (var sub in cmd.SubCommands)
+			builder.AddOption(BuildOption(sub));
+
+		return builder;
+	}
+
 	public static async Task HandleCommand(SocketSlashCommand command)
 	{
-		var cmd = Commands.FirstOrDefault(c => c.Name.Equals(command.CommandName, StringComparison.OrdinalIgnoreCase));
-		if (cmd == null) return;
+		CurrentContext = command;
+		var root = RootCommands.FirstOrDefault(r=> r.Name.Equals(command.CommandName, StringComparison.OrdinalIgnoreCase));
 
-		await Execute(cmd, command.Data.Options);
-		return;
-
-		async Task Execute(IExecutableCommand current, IReadOnlyCollection<SocketSlashCommandDataOption> opts)
+		if (root is null)
 		{
-			while (true)
-			{
-				if (opts.Count != 0 && current is Command cmd1)
-				{
-					var firstOption = opts.First();
-					var sub = cmd1.SubCommands.FirstOrDefault(s => s.Name.Equals(firstOption.Name, StringComparison.OrdinalIgnoreCase));
-					if (sub != null)
-					{
-						if (!AllowedToExecute(sub, command))
-						{
-							await command.RespondAsync(sub.RejectMessage, ephemeral: true);
-							return;
-						}
-
-						current = sub;
-						opts = firstOption.Options;
-						continue;
-					}
-				}
-				else if (opts.Count != 0 && current is SubCommandGroup group)
-				{
-					var firstOption = opts.First();
-					var sub = group.SubCommands.FirstOrDefault(s => s.Name.Equals(firstOption.Name, StringComparison.OrdinalIgnoreCase));
-					if (sub != null)
-					{
-						if (!AllowedToExecute(sub, command))
-						{
-							await command.RespondAsync(sub.RejectMessage, ephemeral: true);
-							return;
-						}
-
-						current = sub;
-						opts = firstOption.Options;
-						continue;
-					}
-				}
-
-				// Base case: we reached an executable command
-				if (current is IRequiresPermissions p && !AllowedToExecute(p, command))
-				{
-					await command.RespondAsync(p.RejectMessage, ephemeral: true);
-					return;
-				}
-
-				await current.ExecuteCommand(command);
-				break;
-			}
+			Log.Warning(
+				"Command {name} has no associated command handler. How you managed this is beyond me but please create it.",
+				command.CommandName);
+			CurrentContext = null;
+			return;
 		}
+
+		var current = root;
+		var opts = command.Data.Options;
+
+		while (opts.Count > 0)
+		{
+			var nextOpt = opts.First();
+			var next = current.SubCommands.FirstOrDefault(s =>
+				s.Name.Equals(nextOpt.Name, StringComparison.OrdinalIgnoreCase));
+
+			if (next is null) break;
+			if (!AllowedToExecute(next, command))
+			{
+				await command.RespondAsync(next.RejectMessage, ephemeral: true);
+				CurrentContext = null;
+				return;
+			}
+
+			current = next;
+			opts = nextOpt.Options;
+		}
+
+		if (current.SubCommands.Count > 0)
+			throw new InvalidOperationException(
+				$"Command groups {current.Name} has no subcommands and attempted to execute.");
+
+		if (!AllowedToExecute(current, command))
+		{
+			await command.RespondAsync(current.RejectMessage, ephemeral: true);
+			CurrentContext = null;
+			return;
+		}
+
+		var args = CommandArgs.Create(command);
+		await current.ExecuteCommand(command, args);
+		CurrentContext = null;
 	}
 
-	public static bool AllowedToExecute(IRequiresPermissions checkAgainst, SocketInteraction context)
+	public static bool AllowedToExecute(ICommand checkAgainst, SocketInteraction context)
 	{
 		if (context.GuildId is null) return false;
 		var user = (SocketGuildUser)context.User;
@@ -158,40 +220,23 @@ public static class CommandManager
 
 public abstract class Command : ICommand
 {
-	public void Dispose()
-	{
-		foreach (var subCommand in SubCommands)
-		{
-			subCommand.Dispose();
-		}
-
-		SubCommands.Clear();
-		Options.Clear();
-		RequiredPermissions.Clear();
-		GC.SuppressFinalize(this);
-	}
-
 	public abstract string Name { get; }
 	public abstract string Description { get; }
 	public virtual bool IsNsfw => false;
 	public virtual bool HideIfCantExecute => false;
-	public virtual string RejectMessage => "You do not have permission to execute this command.";
-	public virtual List<SlashCommandOptionBuilder> Options => [];
-	public virtual List<ISubCommand> SubCommands => [];
+	public virtual List<SlashCommandOptionBuilder> Options { get; } = [];
+
+	public virtual List<ICommand> SubCommands { get; } = [];
+
 	public virtual List<GuildPermission> RequiredPermissions => [];
 	public virtual bool RequiresWhitelist => false;
-	public abstract Task ExecuteCommand(SocketSlashCommand command);
-}
+	public virtual string RejectMessage => "You do not have permission to execute this command.";
 
-public abstract class SubCommand : ISubCommand
-{
-	public virtual SlashCommandOptionBuilder Build()
+	protected virtual Task ExecuteCommand(SocketSlashCommand command, CommandArgs args) =>
+		throw new InvalidOperationException("No behavior is defined for this command.");
+	Task ICommand.ExecuteCommand(SocketSlashCommand command, ICommandArgs commandArgs)
 	{
-		return new SlashCommandOptionBuilder()
-			.WithName(Name)
-			.WithDescription(Description)
-			.WithType(ApplicationCommandOptionType.SubCommand)
-			.AddOptions(Options.ToArray());
+		return ExecuteCommand(command, commandArgs as CommandArgs ?? CommandArgs.Create(command));
 	}
 
 	public void Dispose()
@@ -206,37 +251,13 @@ public abstract class SubCommand : ISubCommand
 		RequiredPermissions.Clear();
 		GC.SuppressFinalize(this);
 	}
-
-	public abstract string Name { get; }
-	public abstract string Description { get; }
-	public virtual List<GuildPermission> RequiredPermissions => [];
-	public virtual bool RequiresWhitelist => false;
-	public virtual bool HideIfCantExecute => false;
-	public virtual string RejectMessage => "You do not have permission to execute this command.";
-	public virtual List<SlashCommandOptionBuilder> Options => [];
-	public virtual List<ISubCommand> SubCommands => [];
-	public abstract Task ExecuteCommand(SocketSlashCommand command);
 }
 
-public abstract class SubCommandGroup : SubCommand
+public abstract class CommandGroup : Command, ICommandGroup
 {
-	public override SlashCommandOptionBuilder Build()
-	{
-		var builder = new SlashCommandOptionBuilder()
-			.WithName(Name)
-			.WithDescription(Description)
-			.WithType(ApplicationCommandOptionType.SubCommandGroup);
-
-		// Add all nested subcommands as options
-		foreach (var sub in SubCommands)
-			builder.AddOption(sub.Build());
-
-		return builder;
-	}
-	/// <summary>
-	/// DO NOT RUN THIS!! THIS IS A GROUP!! THERE IS NOTHING TO EXECUTE!! RAAHHH!!
-	/// </summary>
-	public override Task ExecuteCommand(SocketSlashCommand command) => Task.CompletedTask;
+	protected sealed override Task ExecuteCommand(SocketSlashCommand command, CommandArgs args)
+		=> throw new InvalidOperationException(
+			"Command groups are not allowed to execute directly. Add subcommands to this group to execute instead.");
 }
 
 public sealed class CommandHotReloadEventArgs : EventArgs
