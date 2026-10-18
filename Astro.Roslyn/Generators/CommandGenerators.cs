@@ -1,40 +1,41 @@
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Astro.Diagnostics;
 
-namespace Astro.Generators
+namespace Astro.Roslyn.Generators
 {
 	[Generator]
 	public class CommandGenerators : IIncrementalGenerator
 	{
-		private static readonly DiagnosticDescriptor InvalidCommand = new DiagnosticDescriptor(
-			"ASTR0001",
+		private static readonly DiagnosticDescriptor InvalidCommand = new(
+			DiagnosticsCodes.InvalidCommand,
 			"Root commands and Subcommands must inherit ICommand",
 			"The type {0} is marked with [{1}] but does not implement ICommand",
 			"Commands",
 			DiagnosticSeverity.Error,
 			true);
 
-		private static readonly DiagnosticDescriptor InvalidCommandGroup = new DiagnosticDescriptor(
-			"ASTR0002",
+		private static readonly DiagnosticDescriptor InvalidCommandGroup = new(
+			DiagnosticsCodes.InvalidCommandGroup,
 			"Command groups must inherit ICommandGroup",
 			"The type {0} is marked with [{1}] but does not implement ICommandGroup",
 			"Commands",
 			DiagnosticSeverity.Error,
 			true);
 
-		private static readonly DiagnosticDescriptor InvalidSubcommandParent = new DiagnosticDescriptor(
-			"ASTR0004",
-			"Subcommands must be parented to a command group or root command",
-			"The type {0} must have it's parent property set to a [{1}] or [{2}] instance",
+		private static readonly DiagnosticDescriptor InvalidCommandGroupParent = new(
+			DiagnosticsCodes.InvalidCommandGroupParent,
+			"Command groups must be parented to a Root Command",
+			"The type {0} must have it's parent property set to a [{1}] instance",
 			"Commands",
 			DiagnosticSeverity.Error,
 			true);
-
-		private static readonly DiagnosticDescriptor InvalidCommandGroupParent = new DiagnosticDescriptor(
-			"ASTR0003",
-			"Command groups must be parented to a Root Command",
-			"The type {0} must have it's parent property set to a [{1}] instance",
+		
+		private static readonly DiagnosticDescriptor InvalidSubcommandParent = new(
+			DiagnosticsCodes.InvalidSubcommandParent,
+			"Subcommands must be parented to a command group or root command",
+			"The type {0} must have it's parent property set to a [{1}] or [{2}] instance",
 			"Commands",
 			DiagnosticSeverity.Error,
 			true);
@@ -49,7 +50,7 @@ namespace Astro.Generators
 			{
 				var model = ctx.SemanticModel;
 				var classDecl = (ClassDeclarationSyntax)ctx.Node;
-				if (!(model.GetDeclaredSymbol(classDecl) is INamedTypeSymbol symbol)) return;
+				if (model.GetDeclaredSymbol(classDecl) is not INamedTypeSymbol symbol) return;
 
 				var attrs = symbol.GetAttributes();
 				foreach (var attrName in attrs.Select(attr => attr.AttributeClass?.Name))
@@ -120,7 +121,7 @@ namespace Astro.Generators
 			if (parentType == null) return;
 
 			var hasValidParent = parentType.GetAttributes().Any(a =>
-				a.AttributeClass?.Name == "RootCommandAttribute" || a.AttributeClass?.Name == "CommandGroupAttribute");
+				a.AttributeClass?.Name is "RootCommandAttribute" or "CommandGroupAttribute");
 
 			if (!hasValidParent)
 			{

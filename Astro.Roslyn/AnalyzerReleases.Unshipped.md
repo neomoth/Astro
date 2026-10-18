@@ -3,11 +3,12 @@
 
 ### New Rules
 
-Rule ID | Category | Severity | Notes
---------|----------|----------|-------
-ASTR0001 | Commands | Error | CommandGenerators
-ASTR0002 | Commands | Error | CommandGenerators
-ASTR0003 | Commands | Error | CommandGenerators
-ASTR0004 | Commands | Error | CommandGenerators
-ASTR0005 | Usage | Warning | ExplicitVirtualAnalyzer
-ASTR0006 | Usage | Error | ExplicitVirtualAnalyzer
+| Rule ID  | Category | Severity | Notes                   |
+|----------|----------|----------|-------------------------|
+| ASTR0007 | Styling  | Warning  | UseIsNullComparison     |
+| ASTR0001 | Commands | Error    | CommandGenerators       |
+| ASTR0002 | Commands | Error    | CommandGenerators       |
+| ASTR0003 | Commands | Error    | CommandGenerators       |
+| ASTR0004 | Commands | Error    | CommandGenerators       |
+| ASTR0005 | Usage    | Warning  | ExplicitVirtualAnalyzer |
+| ASTR0006 | Usage    | Error    | ExplicitVirtualAnalyzer |

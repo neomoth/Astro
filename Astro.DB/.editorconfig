@@ -1,0 +1,3 @@
+# EF Core writes these; keep analyzers (e.g. ASTR0005) off them.
+[Migrations/*.cs]
+generated_code = true

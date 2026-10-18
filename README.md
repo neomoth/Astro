@@ -5,7 +5,7 @@ My first real attempt at writing a Discord bot in C#.
 - Fill out the abstractions library a bit more
 - Flesh out behaviors and move to their own manager
 - Make a behavior command to manage autoload behaviors and what behaviors are currently active or not
-- Set up database stuff for multi-server/user config support
+- ~~Set up database stuff for multi-server/user config support~~ DONE
 - Add proper moderation commands
 - Add more silly commands
 - Add more silly systems

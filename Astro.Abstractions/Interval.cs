@@ -1,4 +1,4 @@
-using Serilog;
+using RTLogging;
 
 namespace Astro.Abstractions;
 
@@ -11,23 +11,24 @@ public interface IInterval
 
 public sealed class Interval(TimeSpan interval, Action callback) : IInterval
 {
-	private readonly CancellationTokenSource token = new();
-	private Task? runningTask;
-	private TaskCompletionSource? pauseTcs;
+	private static readonly ISawmill Sawmill = Dependencies.Resolve<ILogManager>().GetSawmill("astro.interval");
+	private readonly CancellationTokenSource _token = new();
+	private Task? _runningTask;
+	private TaskCompletionSource? _pauseTcs;
 
 	public void Start()
 	{
-		if (runningTask is not null) return;
-		if (pauseTcs is not null)
+		if (_runningTask is not null) return;
+		if (_pauseTcs is not null)
 		{
-			pauseTcs.TrySetResult();
-			pauseTcs = null;
+			_pauseTcs.TrySetResult();
+			_pauseTcs = null;
 			return;
 		}
 
-		runningTask = Task.Run(async () =>
+		_runningTask = Task.Run(async () =>
 		{
-			while (!token.IsCancellationRequested)
+			while (!_token.IsCancellationRequested)
 			{
 				try
 				{
@@ -40,7 +41,7 @@ public sealed class Interval(TimeSpan interval, Action callback) : IInterval
 				}
 				catch (Exception e)
 				{
-					Log.Error("Error during interval task: {error}", e.Message);
+					Sawmill.Log(LogLevel.Error, e, "Error during interval task.");
 				}
 			}
 		});
@@ -49,15 +50,15 @@ public sealed class Interval(TimeSpan interval, Action callback) : IInterval
 
 	public void Stop()
 	{
-		token.Cancel();
-		pauseTcs?.TrySetResult();
-		runningTask = null;
+		_token.Cancel();
+		_pauseTcs?.TrySetResult();
+		_runningTask = null;
 	}
 
 	public void Pause()
 	{
-		if (pauseTcs is not null) return;
-		pauseTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+		if (_pauseTcs is not null) return;
+		_pauseTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 	}
 
 	private async Task Wait()
@@ -66,16 +67,16 @@ public sealed class Interval(TimeSpan interval, Action callback) : IInterval
 		var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 		while (remaining.TotalMilliseconds > 0)
 		{
-			if (pauseTcs is not null)
+			if (_pauseTcs is not null)
 			{
-				await pauseTcs.Task;
+				await _pauseTcs.Task;
 				stopwatch.Restart();
 			}
 
 			try
 			{
 				var wait = remaining < TimeSpan.FromSeconds(1) ? remaining : TimeSpan.FromSeconds(1);
-				await Task.Delay(wait, token.Token);
+				await Task.Delay(wait, _token.Token);
 			}
 			catch (TaskCanceledException)
 			{

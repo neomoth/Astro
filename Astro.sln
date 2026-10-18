@@ -1,10 +1,25 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Astro", "Astro\Astro.csproj", "{264063FE-3784-46EA-8A41-C3FA821317AD}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Astro.Bot", "Astro.Bot\Astro.Bot.csproj", "{264063FE-3784-46EA-8A41-C3FA821317AD}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Astro.Abstractions", "Astro.Abstractions\Astro.Abstractions.csproj", "{B09EC1ED-5731-4AA2-BA57-3C3C7BC565CD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Astro.Generators", "Astro.Generators\Astro.Generators.csproj", "{2F5636CC-0E30-49D1-BD02-227FCB8AB412}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Astro.Roslyn", "Astro.Roslyn\Astro.Roslyn.csproj", "{2F5636CC-0E30-49D1-BD02-227FCB8AB412}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Astro.DB", "Astro.DB\Astro.DB.csproj", "{E72EFCD5-CE98-44BB-93FE-3A2D9290004A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Astro.CodeFixes", "Astro.CodeFixes\Astro.CodeFixes.csproj", "{99E16B3B-F105-4899-A88D-E1868522206C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Astro.Diagnostics", "Astro.Diagnostics\Astro.Diagnostics.csproj", "{E5240447-111F-465F-94F7-9D394E1A9102}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Project Files", "Project Files", "{706FF77B-A2C0-4090-BF7C-BB5E148838E7}"
+	ProjectSection(SolutionItems) = preProject
+		.gitignore = .gitignore
+		.editorconfig = .editorconfig
+		Astro.sln = Astro.sln
+		LICENSE = LICENSE
+		README.md = README.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -24,5 +39,17 @@ Global
 		{2F5636CC-0E30-49D1-BD02-227FCB8AB412}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2F5636CC-0E30-49D1-BD02-227FCB8AB412}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2F5636CC-0E30-49D1-BD02-227FCB8AB412}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E72EFCD5-CE98-44BB-93FE-3A2D9290004A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E72EFCD5-CE98-44BB-93FE-3A2D9290004A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E72EFCD5-CE98-44BB-93FE-3A2D9290004A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E72EFCD5-CE98-44BB-93FE-3A2D9290004A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{99E16B3B-F105-4899-A88D-E1868522206C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{99E16B3B-F105-4899-A88D-E1868522206C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{99E16B3B-F105-4899-A88D-E1868522206C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{99E16B3B-F105-4899-A88D-E1868522206C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E5240447-111F-465F-94F7-9D394E1A9102}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E5240447-111F-465F-94F7-9D394E1A9102}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E5240447-111F-465F-94F7-9D394E1A9102}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E5240447-111F-465F-94F7-9D394E1A9102}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
