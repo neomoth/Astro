@@ -1,0 +1,45 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net10.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<LangVersion>15</LangVersion>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Discord.Net" Version="3.20.2" />
+		<PackageReference Include="Discord.Net.Analyzers" Version="3.14.1" />
+		<PackageReference Include="Neomoth.IoC" Version="1.0.1" />
+		<PackageReference Include="Neomoth.RTLogging" Version="1.0.1" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Compile Remove="Resources\**" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<EmbeddedResource Remove="Resources\**" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Remove="Resources\**" />
+		<None Remove=".gitignore" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="..\Resources\**" LinkBase="Resources" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Astro.Abstractions\Astro.Abstractions.csproj" />
+		<ProjectReference Include="..\Astro.DB\Astro.DB.csproj" />
+	</ItemGroup>
+	
+	<ItemGroup>
+		<ProjectReference Include="..\Astro.CodeFixes\Astro.CodeFixes.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\Astro.Roslyn\Astro.Roslyn.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+	</ItemGroup>
+
+</Project>
