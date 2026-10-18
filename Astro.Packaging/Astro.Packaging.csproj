@@ -1,0 +1,47 @@
+<!--
+	Builds release archives of the bot: a self-contained `astro` executable per platform, plus the README and LICENSE.
+
+	  dotnet build Astro.Packaging -t:Package                               all platforms
+	  dotnet build Astro.Packaging -t:Package -p:PackageRuntimes=linux-x64  just one; separate several with %3B
+
+	Archives land in artifacts/ as astro-<version>-<runtime>.tar.gz (.zip for Windows). The version comes from
+	Directory.Build.props. Building the solution normally does nothing here.
+-->
+<Project Sdk="Microsoft.Build.NoTargets/3.7.56">
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<PackageRuntimes Condition="'$(PackageRuntimes)' == ''">linux-x64;linux-arm64;win-x64;osx-x64;osx-arm64</PackageRuntimes>
+		<RepoRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..'))</RepoRoot>
+		<ArtifactsDir>$(RepoRoot)/artifacts</ArtifactsDir>
+		<StagingDir>$(ArtifactsDir)/staging</StagingDir>
+		<BotProject>$(RepoRoot)/Astro.Bot/Astro.Bot.csproj</BotProject>
+	</PropertyGroup>
+
+	<Target Name="Package">
+		<!-- Items are made here rather than at the top level, where IDEs would show them as (missing) files. -->
+		<ItemGroup>
+			<!-- Unescaped so a %3B-separated list from the command line splits into one item per runtime. -->
+			<PackageRuntime Include="$([MSBuild]::Unescape($(PackageRuntimes)))" />
+			<PackageExtra Include="$(RepoRoot)/README.md;$(RepoRoot)/LICENSE" />
+		</ItemGroup>
+		<ItemGroup>
+			<_WindowsRuntime Include="@(PackageRuntime)" Condition="$([System.String]::Copy('%(Identity)').StartsWith('win-'))" />
+			<_UnixRuntime Include="@(PackageRuntime)" Exclude="@(_WindowsRuntime)" />
+		</ItemGroup>
+
+		<RemoveDir Directories="$(StagingDir)" />
+
+		<Exec Command="dotnet publish &quot;$(BotProject)&quot; -c Release -r %(PackageRuntime.Identity) -p:AstroRelease=true -p:Version=$(Version) -o &quot;$(StagingDir)/%(PackageRuntime.Identity)&quot;" />
+		<Copy SourceFiles="@(PackageExtra)" DestinationFolder="$(StagingDir)/%(PackageRuntime.Identity)" />
+
+		<!-- tar keeps the executable bit, which zip doesn't. -->
+		<Exec Command="tar -czf &quot;$(ArtifactsDir)/astro-$(Version)-%(_UnixRuntime.Identity).tar.gz&quot; -C &quot;$(StagingDir)/%(_UnixRuntime.Identity)&quot; ."
+		      Condition="'@(_UnixRuntime)' != ''" />
+		<ZipDirectory SourceDirectory="$(StagingDir)/%(_WindowsRuntime.Identity)"
+		              DestinationFile="$(ArtifactsDir)/astro-$(Version)-%(_WindowsRuntime.Identity).zip"
+		              Overwrite="true"
+		              Condition="'@(_WindowsRuntime)' != ''" />
+
+		<Message Importance="high" Text="Packaged Astro $(Version) for $(PackageRuntimes) into $(ArtifactsDir)" />
+	</Target>
+</Project>

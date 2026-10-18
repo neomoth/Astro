@@ -45,10 +45,7 @@ public sealed class GlobalConfigManager : Manager
 
 	public GlobalConfigManager()
 	{
-		var resourceDir = ResourcePaths.Root;
 		_configDir = ResourcePaths.Config;
-
-		Directory.CreateDirectory(resourceDir);
 		Directory.CreateDirectory(_configDir);
 
 		Registry = new ConfigOptionRegistry();

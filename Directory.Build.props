@@ -1,0 +1,17 @@
+<Project>
+	<PropertyGroup>
+		<Version>0.1.0</Version>
+		<Authors>neomoth</Authors>
+		<Product>Astro</Product>
+	</PropertyGroup>
+
+	<!--
+		Set by Astro.Packaging. Release binaries keep their files in the platform's usual folders (see ResourcePaths);
+		everything else, including Release builds run from the repo, uses the repo's Resources folder.
+	-->
+	<PropertyGroup Condition="'$(AstroRelease)' == 'true'">
+		<DefineConstants>$(DefineConstants);ASTRO_RELEASE</DefineConstants>
+		<!-- Debug symbols go inside each assembly, so the release is just the executable. -->
+		<DebugType>embedded</DebugType>
+	</PropertyGroup>
+</Project>

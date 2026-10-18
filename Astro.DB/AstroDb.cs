@@ -1,3 +1,4 @@
+using Astro.Abstractions;
 using Astro.DB.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,7 +17,7 @@ public static class AstroDb
 	private const string DatabaseFileName = "astro.db";
 	private static DbContextOptions<AstroDbContext>? _options;
 
-	public static string FullPath { get; private set; } = Path.Combine(FindResourceDir(), "Data", DatabaseFileName);
+	public static string FullPath => Path.Combine(ResourcePaths.Data, DatabaseFileName);
 
 	/// <summary>
 	/// Creates the database if missing and applies any pending migrations. Call once at startup.
@@ -117,14 +118,4 @@ public static class AstroDb
 	public static Task<UserConfig> UpdateUser(ulong userId, Action<UserConfig> change) => Update(userId, change);
 
 	#endregion
-
-	private static string FindResourceDir()
-	{
-		var dir = new DirectoryInfo(AppContext.BaseDirectory);
-		while (dir is not null && !Directory.EnumerateFiles(dir.FullName, "*.sln").Any())
-			dir = dir.Parent;
-		return dir is null
-			? throw new DirectoryNotFoundException("Could not find the solution (.sln) file in any parent directory.")
-			: Path.Combine(dir.FullName, "Resources");
-	}
 }

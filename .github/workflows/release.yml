@@ -1,0 +1,80 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*" # e.g. v0.2.0, v0.3.0-beta.1
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build (${{ matrix.name }})
+    # Each platform builds on its own OS. macOS in particular needs this: Apple Silicon won't run an unsigned binary,
+    # and the SDK only signs the executable when building on a Mac.
+    strategy:
+      matrix:
+        include:
+          - name: Linux
+            os: ubuntu-latest
+            runtimes: linux-x64%3Blinux-arm64 # %3B is an escaped ;, which MSBuild would otherwise split properties on
+          - name: Windows
+            os: windows-latest
+            runtimes: win-x64
+          - name: macOS
+            os: macos-latest
+            runtimes: osx-x64%3Bosx-arm64
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # The projects use C# 15 (LangVersion 15), which needs the .NET 11 SDK.
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 11.0.x
+          dotnet-quality: preview
+
+      - name: Package
+        run: dotnet build Astro.Packaging -t:Package -p:Version=${GITHUB_REF_NAME#v} -p:PackageRuntimes=${{ matrix.runtimes }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: astro-${{ matrix.name }}
+          path: |
+            artifacts/*.tar.gz
+            artifacts/*.zip
+          if-no-files-found: error
+
+  release:
+    name: Publish release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the release and upload its files
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create or update the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          prerelease=()
+          [[ "$TAG" == *-* ]] && prerelease=(--prerelease) # versions like 0.3.0-beta.1
+
+          # A retagged version (release.sh --retag) already has a release; replace its files instead.
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" artifacts/* --clobber
+          else
+            gh release create "$TAG" artifacts/* --verify-tag --title "Astro ${TAG#v}" --generate-notes "${prerelease[@]}"
+          fi

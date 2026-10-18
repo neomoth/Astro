@@ -32,8 +32,7 @@ public sealed class AstroBot : IDependency
 		if (token is null || string.IsNullOrWhiteSpace(token))
 		{
 			Log.Fatal("Bot token is empty, please fill it in at {path}", config.FullPath);
-			await Task.FromException(new Exception("Bot token is empty"));
-			return;
+			throw new StartupException("Bot token is empty.");
 		}
 
 		Client.Log += LogAsync;

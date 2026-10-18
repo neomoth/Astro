@@ -1,4 +1,5 @@
-﻿using Astro.Bot.Behaviors;
+﻿using System.Reflection;
+using Astro.Bot.Behaviors;
 using Astro.Bot.Commands;
 using Astro.Abstractions;
 using Astro.Bot.Configuration;
@@ -13,14 +14,60 @@ public sealed class Program
 	private static AstroBot _bot = null!;
 	private readonly TaskCompletionSource _shutdown = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-	public static void Main(string[] args) => new Program().MainAsync().GetAwaiter().GetResult();
+	public static int Main(string[] args)
+	{
+		for (var i = 0; i < args.Length; i++)
+		{
+			switch (args[i])
+			{
+				case "--home" when i + 1 < args.Length:
+					ResourcePaths.UseHome(args[++i]);
+					break;
+				case "--paths":
+					Console.WriteLine($"""
+						Mode:   {ResourcePaths.Mode}
+						Config: {ResourcePaths.Config}
+						Data:   {ResourcePaths.Data}
+						Logs:   {ResourcePaths.Logs}
+						Keys:   {ResourcePaths.Keys}
+						""");
+					return 0;
+				case "--version":
+					Console.WriteLine(Version);
+					return 0;
+				case "--help" or "-h":
+					Console.WriteLine($"""
+						Astro {Version}
 
-	private async Task MainAsync()
+						Usage: astro [--home <dir>] [--paths]
+
+						  --home <dir>  Keep config, data and logs in <dir> instead of the default locations.
+						                Same as setting ASTRO_HOME.
+						  --paths       Print where config, data and logs are kept, and exit.
+						  --version     Print the version and exit.
+						""");
+					return 0;
+				default:
+					Console.Error.WriteLine($"Unknown argument '{args[i]}'. Run with --help for usage.");
+					return 2;
+			}
+		}
+
+		return new Program().MainAsync().GetAwaiter().GetResult();
+	}
+
+	private static string Version =>
+		typeof(Program).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0]
+		?? "unknown";
+
+	private async Task<int> MainAsync()
 	{
 		var deps = Dependencies.Initialize();
 		deps.RegisterInstance<ILogManager>(CreateLogManager());
 		AstroIoC.Register(deps);
 		deps.BuildGraph();
+		deps.Resolve<ILogManager>().GetSawmill("astro").Info("Astro {version:l} ({mode:l} paths). Config: {config}, data: {data}, logs: {logs}",
+			Version, ResourcePaths.Mode, ResourcePaths.Config, ResourcePaths.Data, ResourcePaths.Logs);
 
 		// Storage first, so managers can rely on the config and database in Initialize.
 		deps.Resolve<BehaviorManager>().Load(); // before LoadConfig so saved behavior options are applied
@@ -47,10 +94,21 @@ public sealed class Program
 			_shutdown.TrySetResult();
 		};
 
-		await _bot.Initialize();
+		try
+		{
+			await _bot.Initialize();
+		}
+		catch (StartupException)
+		{
+			// Already logged where it was thrown; just exit without a stack trace.
+			Dependencies.Shutdown();
+			return 1;
+		}
+
 		await _shutdown.Task;
 		await _bot.Shutdown();
 		Dependencies.Shutdown(); // disposes LogManager, flushing and closing the log handlers
+		return 0;
 	}
 
 	private static LogManager CreateLogManager()

@@ -8,6 +8,18 @@
 		<LangVersion>15</LangVersion>
 	</PropertyGroup>
 
+	<!-- Release binaries from Astro.Packaging: one self-contained executable, so users don't need .NET installed. -->
+	<PropertyGroup Condition="'$(AstroRelease)' == 'true'">
+		<AssemblyName>astro</AssemblyName>
+		<SelfContained>true</SelfContained>
+		<PublishSingleFile>true</PublishSingleFile>
+		<!-- SQLite's native library has to be extracted to load; this bundles it into the single file. -->
+		<IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+		<EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+		<!-- Commands, behaviors, IoC and EF Core all rely on reflection, which trimming would break. -->
+		<PublishTrimmed>false</PublishTrimmed>
+	</PropertyGroup>
+
 	<ItemGroup>
 		<PackageReference Include="Discord.Net" Version="3.20.2" />
 		<PackageReference Include="Discord.Net.Analyzers" Version="3.14.1" />
